@@ -66,6 +66,7 @@
                                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Played</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold text-green-600 uppercase tracking-wider">Wins</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold text-red-500 uppercase tracking-wider">Losses</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-indigo-600 uppercase tracking-wider">Pts</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">G.Diff</th>
                                 </tr>
                             </thead>
@@ -220,33 +221,37 @@
 
         // --- Global Constants & State ---
         const TEAMS = [
-            "Illavatta Pasanga", "Saravedi", "Legends", "Silent Kings",
-            "Alaiparais", "Baasha", "7 Thala Team"
+            "Ilavatta Pasanga", "Saravedi", "Legends", "Silent Kings",
+            "Alapparai", "Baasha", "Prince Warriors"
         ];
 
         // League Matches Schedule
+        // Revised based on specific match list 1-7, and then round-robin for rest
         const LEAGUE_MATCHES_DEFINITIONS = [
-            { id: "L-M1", teams: ["Illavatta Pasanga", "Saravedi"] },
+            // Matches 1-7 as requested
+            { id: "L-M1", teams: ["Ilavatta Pasanga", "Saravedi"] },
             { id: "L-M2", teams: ["Legends", "Silent Kings"] },
-            { id: "L-M3", teams: ["Alaiparais", "Baasha"] }, 
-            { id: "L-M4", teams: ["Illavatta Pasanga", "Baasha"] },
-            { id: "L-M5", teams: ["Legends", "Alaiparais"] },
-            { id: "L-M6", teams: ["Silent Kings", "Saravedi"] },
-            { id: "L-M7", teams: ["Saravedi", "Legends"] }, 
-            { id: "L-M8", teams: ["Illavatta Pasanga", "Legends"] },   
-            { id: "L-M9", teams: ["7 Thala Team", "Illavatta Pasanga"] }, 
-            { id: "L-M10", teams: ["Silent Kings", "Alaiparais"] },   
-            { id: "L-M11", teams: ["7 Thala Team", "Baasha"] },       
-            { id: "L-M12", teams: ["Illavatta Pasanga", "Silent Kings"] }, 
-            { id: "L-M13", teams: ["7 Thala Team", "Alaiparais"] },   
-            { id: "L-M14", teams: ["Saravedi", "Alaiparais"] },       
-            { id: "L-M15", teams: ["7 Thala Team", "Legends"] },      
-            { id: "L-M16", teams: ["Baasha", "Silent Kings"] },       
-            { id: "L-M17", teams: ["7 Thala Team", "Silent Kings"] },  
-            { id: "L-M18", teams: ["Illavatta Pasanga", "Alaiparais"] }, 
-            { id: "L-M19", teams: ["Saravedi", "Baasha"] },          
-            { id: "L-M20", teams: ["Legends", "Baasha"] },
-            { id: "L-M21", teams: ["7 Thala Team", "Saravedi"] },     
+            { id: "L-M3", teams: ["Baasha", "Alapparai"] }, 
+            { id: "L-M4", teams: ["Ilavatta Pasanga", "Baasha"] },
+            { id: "L-M5", teams: ["Alapparai", "Silent Kings"] }, 
+            { id: "L-M6", teams: ["Saravedi", "Legends"] }, 
+            { id: "L-M7", teams: ["Prince Warriors", "Alapparai"] }, 
+            
+            // Remaining Round Robin matches (to ensure all play all)
+            { id: "L-M8", teams: ["Ilavatta Pasanga", "Legends"] },   
+            { id: "L-M9", teams: ["Prince Warriors", "Ilavatta Pasanga"] }, 
+            { id: "L-M10", teams: ["Prince Warriors", "Baasha"] },       
+            { id: "L-M11", teams: ["Ilavatta Pasanga", "Silent Kings"] }, 
+            { id: "L-M12", teams: ["Saravedi", "Alapparai"] },       
+            { id: "L-M13", teams: ["Prince Warriors", "Legends"] },      
+            { id: "L-M14", teams: ["Baasha", "Silent Kings"] },       
+            { id: "L-M15", teams: ["Prince Warriors", "Silent Kings"] },  
+            { id: "L-M16", teams: ["Ilavatta Pasanga", "Alapparai"] }, 
+            { id: "L-M17", teams: ["Saravedi", "Baasha"] },          
+            { id: "L-M18", teams: ["Legends", "Baasha"] },
+            { id: "L-M19", teams: ["Prince Warriors", "Saravedi"] }, 
+            { id: "L-M20", teams: ["Legends", "Alapparai"] },
+            { id: "L-M21", teams: ["Silent Kings", "Saravedi"] }    
         ];
         
         // Playoff Structure
@@ -258,12 +263,15 @@
             "F-M1": { teams: ["Winner SF-M1", "Winner SF-M2"], scores: [null, null], winner: null, nextMatch: null, winnerSlot: null },
         };
 
-        // Initial State
+        // Initial State - Pre-filling scores as requested
         const INITIAL_LEAGUE_MATCHES_STATE = LEAGUE_MATCHES_DEFINITIONS.map(m => {
-            // Preserving previous history if it matches
-            if (m.id === "L-M1") return { ...m, scores: [6, 1], winner: 0 };
-            if (m.id === "L-M2") return { ...m, scores: [6, 4], winner: 0 };
-            if (m.id === "L-M3") return { ...m, scores: [2, 6], winner: 1 };
+            if (m.id === "L-M1") return { ...m, scores: [6, 1], winner: 0 }; // Ilavatta vs Saravedi
+            if (m.id === "L-M2") return { ...m, scores: [6, 4], winner: 0 }; // Legends vs Silent Kings
+            if (m.id === "L-M3") return { ...m, scores: [6, 2], winner: 0 }; // Baasha vs Alapparai
+            if (m.id === "L-M4") return { ...m, scores: [6, 4], winner: 0 }; // Ilavatta vs Baasha
+            if (m.id === "L-M5") return { ...m, scores: [6, 1], winner: 0 }; // Alapparai vs Silent Kings
+            // L-M6 Saravedi vs Legends is pending (null)
+            if (m.id === "L-M7") return { ...m, scores: [3, 6], winner: 1 }; // Prince Warriors vs Alapparai (Alapparai won)
             return { ...m, scores: [null, null], winner: null };
         });
 
@@ -395,12 +403,14 @@
 
                     if (match.winner === 0) {
                         teamStats[teamA].wins++;
-                        teamStats[teamA].points += 1;
+                        teamStats[teamA].points += 2; // 2 points for Win
                         teamStats[teamB].losses++;
+                        teamStats[teamB].points += 1; // 1 point for Loss
                     } else {
                         teamStats[teamB].wins++;
-                        teamStats[teamB].points += 1;
+                        teamStats[teamB].points += 2; // 2 points for Win
                         teamStats[teamA].losses++;
+                        teamStats[teamA].points += 1; // 1 point for Loss
                     }
 
                     teamStats[teamA].gamesWon += scoreA;
@@ -416,6 +426,7 @@
                 return { name, ...stats };
             });
 
+            // Sort: 1. Matches Won, 2. Game Difference (total points scored / gave points to opponents)
             sortedTeams.sort((a, b) => {
                 if (b.wins !== a.wins) return b.wins - a.wins;
                 return b.gameDifference - a.gameDifference;
@@ -532,6 +543,7 @@
                     <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-500">${team.played}</td>
                     <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-green-600 font-bold">${team.wins}</td>
                     <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-red-500 font-bold">${team.losses}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-indigo-600 font-bold">${team.points}</td>
                     <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-700 font-bold bg-gray-50 rounded-lg">
                         ${team.gameDifference > 0 ? '+' : ''}${team.gameDifference}
                     </td>
