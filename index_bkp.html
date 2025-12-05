@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Status Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .container {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body class="p-6 md:p-10 flex items-center justify-center min-h-screen">
+
+    <div id="app-container" class="container w-full bg-white shadow-xl rounded-xl p-8 space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800 text-center">Firebase Connection Status</h1>
+        
+        <div id="status-card" class="p-4 rounded-lg border-2 border-gray-200">
+            <p class="font-semibold text-lg mb-2 text-blue-600 flex items-center">
+                <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="auth-status-text">Attempting Authentication...</span>
+            </p>
+
+            <ul class="text-sm text-gray-600 space-y-2 mt-4">
+                <li><strong>App ID:</strong> <code id="app-id" class="bg-gray-100 p-1 rounded">Loading...</code></li>
+                <li><strong>User ID:</strong> <code id="user-id" class="bg-gray-100 p-1 rounded break-all">Awaiting authentication...</code></li>
+                <li><strong>Persistence:</strong> <span id="persistence-status">Not applicable in this environment.</span></li>
+            </ul>
+        </div>
+
+        <div id="error-message" class="hidden p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <h3 class="font-bold">Error Details:</h3>
+            <p id="error-text" class="text-sm mt-1"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules using the CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: Use the provided global variables securely
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let auth;
+        let db;
+
+        const authStatusText = document.getElementById('auth-status-text');
+        const userIdDisplay = document.getElementById('user-id');
+        const appIdDisplay = document.getElementById('app-id');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessageDiv = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
+        async function initFirebase() {
+            try {
+                // 1. Initialize App
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    throw new Error("Firebase Config is invalid or missing apiKey. Check the '__firebase_config' variable.");
+                }
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                setLogLevel('debug'); // Enable detailed console logging for debugging
+
+                appIdDisplay.textContent = appId;
+                
+                authStatusText.textContent = "Authenticating...";
+                loadingSpinner.classList.remove('hidden');
+
+                // 2. Handle Authentication
+                // Use the custom token if provided, otherwise sign in anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+
+                // 3. Set up Auth State Listener
+                onAuthStateChanged(auth, (user) => {
+                    loadingSpinner.classList.add('hidden');
+                    if (user) {
+                        userIdDisplay.textContent = user.uid;
+                        authStatusText.textContent = "Connection SUCCESSFUL!";
+                        authStatusText.classList.remove('text-blue-600');
+                        authStatusText.classList.add('text-green-600');
+                        document.getElementById('status-card').classList.remove('border-gray-200');
+                        document.getElementById('status-card').classList.add('border-green-400');
+                        console.log("User successfully authenticated:", user.uid);
+
+                        // Example: You can now start Firestore operations here
+                        // For example: listenToData(db, user.uid);
+
+                    } else {
+                        userIdDisplay.textContent = "No user authenticated.";
+                        authStatusText.textContent = "Authentication FAILED (Anonymous/Token failure).";
+                        authStatusText.classList.remove('text-blue-600');
+                        authStatusText.classList.add('text-red-600');
+                        document.getElementById('status-card').classList.remove('border-gray-200');
+                        document.getElementById('status-card').classList.add('border-red-400');
+                        console.error("Authentication failed: No user object received.");
+                    }
+                });
+
+
+            } catch (error) {
+                // Handle the initialization error (like the one you reported)
+                console.error("Firebase Init Error:", error);
+                loadingSpinner.classList.add('hidden');
+                authStatusText.textContent = "Connection FAILED!";
+                authStatusText.classList.remove('text-blue-600');
+                authStatusText.classList.add('text-red-600');
+
+                errorMessageDiv.classList.remove('hidden');
+                errorText.textContent = error.message;
+                
+                document.getElementById('status-card').classList.remove('border-gray-200');
+                document.getElementById('status-card').classList.add('border-red-400');
+            }
+        }
+
+        window.onload = initFirebase;
+    </script>
+</body>
+</html>
