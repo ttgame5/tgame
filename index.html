@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7-Team Tennis League & Playoff Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .match-row:hover { background-color: #f1f5f9; }
+        .rank-badge { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 700; border-radius: 9999px; }
+        .rank-1 { background-color: #facc15; color: #78350f; }
+        .rank-2 { background-color: #94a3b8; color: #1e293b; }
+        .rank-playoff { background-color: #10b981; color: white; }
+        .playoff-node { min-height: 4rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 border-b-4 border-indigo-600 pb-2">
+            7-Team Tennis League & Playoff Tracker
+        </h1>
+        <p class="text-gray-600 mb-8">
+            Enter game scores for all 21 League matches using the "Enter Score" buttons below. 
+            The standings and playoff bracket update automatically using a persistent Firestore database.
+        </p>
+
+        <!-- Standings Table -->
+        <div class="mb-10 bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-indigo-700 mb-4">League Standings</h2>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GDiff</th>
+                    </tr>
+                </thead>
+                <tbody id="standings-body" class="bg-white divide-y divide-gray-200">
+                    <!-- Standings rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- League Matches -->
+        <div class="mb-10 bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-indigo-700 mb-4">League Matches (3/21 Completed)</h2>
+            <div id="league-matches-list" class="space-y-2">
+                <!-- Match rows will be injected here -->
+            </div>
+        </div>
+
+        <!-- Playoff Structure -->
+        <div class="mb-10 bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-indigo-700 mb-6">Playoffs (Top 6 Teams Qualify)</h2>
+            <div id="playoff-bracket" class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                <!-- Knockouts -->
+                <div class="col-span-1 flex flex-col space-y-8">
+                    <h3 class="text-lg font-semibold text-gray-600">Knockouts (R3 vs R6, R4 vs R5)</h3>
+                    <div id="KO-M1" class="playoff-node bg-gray-100 p-3 rounded-lg shadow"></div>
+                    <div id="KO-M2" class="playoff-node bg-gray-100 p-3 rounded-lg shadow"></div>
+                </div>
+
+                <!-- Semi-Finals -->
+                <div class="col-span-1 flex flex-col space-y-20 pt-10">
+                    <h3 class="text-lg font-semibold text-gray-600">Semi-Finals (R1 & R2 get a Bye)</h3>
+                    <div id="SF-M1" class="playoff-node bg-gray-100 p-3 rounded-lg shadow"></div>
+                    <div id="SF-M2" class="playoff-node bg-gray-100 p-3 rounded-lg shadow"></div>
+                </div>
+
+                <!-- Final -->
+                <div class="col-span-2 md:col-span-1 flex flex-col space-y-40 pt-10">
+                    <h3 class="text-lg font-semibold text-gray-600">The Final</h3>
+                    <div id="F-M1" class="playoff-node bg-yellow-50 border-2 border-yellow-400 p-4 rounded-lg shadow-xl"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Champion Display -->
+        <div id="champion-display" class="mt-12 p-6 bg-green-100 border-l-8 border-green-500 rounded-lg text-center hidden">
+            <p class="text-xl text-green-700 font-semibold">Tournament Champion:</p>
+            <p id="champion-name" class="text-4xl font-extrabold text-green-900 mt-2"></p>
+        </div>
+
+
+        <!-- Score Input Modal -->
+        <div id="score-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center hidden" onclick="closeModal(event)">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
+                <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Enter Score</h3>
+                <div class="space-y-4">
+                    <p class="text-sm text-red-600" id="modal-error" style="display:none;"></p>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label id="team-a-label" for="team-a-score" class="font-semibold text-gray-700 w-2/3 truncate">Team A</label>
+                        <input type="number" id="team-a-score" min="0" class="w-1/4 p-2 border border-gray-300 rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500" value="0">
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label id="team-b-label" for="team-b-score" class="font-semibold text-gray-700 w-2/3 truncate">Team B</label>
+                        <input type="number" id="team-b-score" min="0" class="w-1/4 p-2 border border-gray-300 rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500" value="0">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">Cancel</button>
+                    <button onclick="submitScore()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold">Submit Score</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports for persistence
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+        // Set Firebase logging level to Debug
+        setLogLevel('Debug');
+
+        // --- Firebase Setup (MANDATORY GLOBALS) ---
+        // These variables are provided by the hosting environment for persistent storage.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId = null;
+        let isAuthReady = false;
+
+        // Firestore Path for Public Data
+        const DB_COLLECTION = `artifacts/${appId}/public/data/league_tracker`;
+        const DB_DOC_ID = 'tournament_state';
+
+        // --- Global Constants & State ---
+        const TEAMS = [
+            "Illavatta Pasanga", "Saravedi", "Legends", "Silent Kings",
+            "Alaiparais", "Baasha", "7 Thala Team"
+        ];
+
+        // Define all 21 League matches with an interleaved schedule for "7 Thala Team"
+        // L-M21 is "7 Thala Team" vs "Saravedi"
+        const LEAGUE_MATCHES_DEFINITIONS = [
+            // Matches L-M1 to L-M7 (Existing schedule)
+            { id: "L-M1", teams: ["Illavatta Pasanga", "Saravedi"] },
+            { id: "L-M2", teams: ["Legends", "Silent Kings"] },
+            { id: "L-M3", teams: ["Alaiparais", "Baasha"] }, 
+            { id: "L-M4", teams: ["Illavatta Pasanga", "Baasha"] },
+            { id: "L-M5", teams: ["Legends", "Alaiparais"] },
+            { id: "L-M6", teams: ["Silent Kings", "Saravedi"] },
+            { id: "L-M7", teams: ["Saravedi", "Legends"] }, 
+
+            // Matches L-M8 to L-M19 (Interleaved 7 Thala Team matches)
+            { id: "L-M8", teams: ["Illavatta Pasanga", "Legends"] },   // Non-7T
+            { id: "L-M9", teams: ["7 Thala Team", "Illavatta Pasanga"] }, // 7T
+            { id: "L-M10", teams: ["Silent Kings", "Alaiparais"] },   // Non-7T
+            { id: "L-M11", teams: ["7 Thala Team", "Baasha"] },       // 7T
+            { id: "L-M12", teams: ["Illavatta Pasanga", "Silent Kings"] }, // Non-7T
+            { id: "L-M13", teams: ["7 Thala Team", "Alaiparais"] },   // 7T
+            { id: "L-M14", teams: ["Saravedi", "Alaiparais"] },       // Non-7T
+            { id: "L-M15", teams: ["7 Thala Team", "Legends"] },      // 7T
+            { id: "L-M16", teams: ["Baasha", "Silent Kings"] },       // Non-7T
+            { id: "L-M17", teams: ["7 Thala Team", "Silent Kings"] },  // 7T
+            { id: "L-M18", teams: ["Illavatta Pasanga", "Alaiparais"] }, // Non-7T
+            { id: "L-M19", teams: ["Saravedi", "Baasha"] },          // Swapped from L-M21
+            
+            // Matches L-M20 to L-M21 (Updated end schedule)
+            { id: "L-M20", teams: ["Legends", "Baasha"] },
+            { id: "L-M21", teams: ["7 Thala Team", "Saravedi"] },     // Swapped from L-M19
+        ];
+        
+        // Define Playoff matches structure (initial team names are placeholders based on rank)
+        const PLAYOFF_MATCHES_DEFINITIONS = {
+            "KO-M1": { teams: ["Rank 3", "Rank 6"], scores: [null, null], winner: null, nextMatch: "SF-M2", winnerSlot: 1 },
+            "KO-M2": { teams: ["Rank 4", "Rank 5"], scores: [null, null], winner: null, nextMatch: "SF-M1", winnerSlot: 1 },
+            "SF-M1": { teams: ["Rank 1", "Winner KO-M2"], scores: [null, null], winner: null, nextMatch: "F-M1", winnerSlot: 0 },
+            "SF-M2": { teams: ["Rank 2", "Winner KO-M1"], scores: [null, null], winner: null, nextMatch: "F-M1", winnerSlot: 1 },
+            "F-M1": { teams: ["Winner SF-M1", "Winner SF-M2"], scores: [null, null], winner: null, nextMatch: null, winnerSlot: null },
+        };
+
+        // Define initial results for completed matches (L-M1: Illavatta Pasanga 6-1, L-M2: Legends 6-4, L-M3: Baasha 6-2)
+        const INITIAL_LEAGUE_MATCHES_STATE = LEAGUE_MATCHES_DEFINITIONS.map(m => {
+            if (m.id === "L-M1") {
+                // Illavatta Pasanga (teams[0]) won 6-1
+                return { ...m, scores: [6, 1], winner: 0 };
+            }
+            if (m.id === "L-M2") {
+                // Legends (teams[0]) won 6-4
+                return { ...m, scores: [6, 4], winner: 0 };
+            }
+            if (m.id === "L-M3") {
+                // Baasha (teams[1]) won 6-2 (Alaiparais 2, Baasha 6)
+                return { ...m, scores: [2, 6], winner: 1 };
+            }
+            return { ...m, scores: [null, null], winner: null };
+        });
+
+
+        let state = {
+            leagueMatches: INITIAL_LEAGUE_MATCHES_STATE,
+            playoffMatches: JSON.parse(JSON.stringify(PLAYOFF_MATCHES_DEFINITIONS)), // Deep copy of structure
+            standings: {},
+            activeMatchId: null, // For modal control
+            activeMatchType: null // 'league' or 'playoff'
+        };
+
+        // UI elements
+        const scoreModal = document.getElementById('score-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const teamALabel = document.getElementById('team-a-label');
+        const teamBLabel = document.getElementById('team-b-label');
+        const teamAScoreInput = document.getElementById('team-a-score');
+        const teamBScoreInput = document.getElementById('team-b-score');
+        const modalError = document.getElementById('modal-error');
+        const standingsBody = document.getElementById('standings-body');
+        const leagueMatchesList = document.getElementById('league-matches-list');
+        const championDisplay = document.getElementById('champion-display');
+        const championName = document.getElementById('champion-name');
+
+
+        // --- Firebase Initialization ---
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Firebase Auth Ready. UID:", userId);
+                    } else {
+                        console.log("Signing in anonymously...");
+                        await signInAnonymously(auth);
+                        userId = auth.currentUser.uid;
+                        console.log("Anonymous sign-in complete. UID:", userId);
+                    }
+                    isAuthReady = true;
+                    startSnapshotListener();
+                });
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else if (!auth.currentUser) {
+                     // Trigger onAuthStateChanged flow
+                }
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        }
+
+        function startSnapshotListener() {
+            if (!isAuthReady) return;
+            const docRef = doc(db, DB_COLLECTION, DB_DOC_ID);
+
+            // Listen for real-time updates to the tournament state
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Load the saved state, prioritizing persisted data over the client's initial state
+                    state.leagueMatches = data.leagueMatches || state.leagueMatches;
+                    state.playoffMatches = data.playoffMatches || state.playoffMatches;
+                    console.log("State updated from Firestore.");
+                } else {
+                    console.log("No initial state found, initializing in Firestore.");
+                    // Save the client's current initial state if nothing exists in DB
+                    saveState(); 
+                }
+                updateAllViews();
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+            });
+        }
+        
+        async function saveState() {
+            if (!isAuthReady) {
+                console.warn("Attempted to save state before Auth was ready.");
+                return;
+            }
+            try {
+                 // Save the current state of league and playoff matches
+                 await setDoc(doc(db, DB_COLLECTION, DB_DOC_ID), {
+                    leagueMatches: state.leagueMatches,
+                    playoffMatches: state.playoffMatches,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                // The UI update is handled by the onSnapshot listener, ensuring consistency.
+            } catch (error) {
+                console.error("Error writing document to Firestore:", error);
+            }
+        }
+
+        // --- Core Logic ---
+
+        /**
+         * Determines the winner of a single set based on tennis rules (first to 6, lead by 2, or 7-6 tiebreak).
+         * @returns {number|null} 0 for Team A winner, 1 for Team B winner, null if invalid score/match still in progress.
+         */
+        function determineWinner(scoreA, scoreB) {
+            const diff = Math.abs(scoreA - scoreB);
+
+            // Win condition: reach 6 games and lead by 2
+            if ((scoreA >= 6 || scoreB >= 6) && diff >= 2) {
+                return scoreA > scoreB ? 0 : 1;
+            }
+
+            // Tie-Break condition: 7-6 win
+            if (scoreA === 7 && scoreB === 6) return 0;
+            if (scoreB === 7 && scoreA === 6) return 1;
+
+            // If a winner cannot be determined by the rules
+            return null;
+        }
+
+        function calculateStandings() {
+            const teamStats = {};
+            TEAMS.forEach(team => {
+                // Initialize new properties for game tracking (Set Points Difference)
+                teamStats[team] = { played: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0, points: 0, rank: 0 };
+            });
+
+            // Process all league match results
+            state.leagueMatches.forEach(match => {
+                if (match.winner !== null) {
+                    const teamA = match.teams[0];
+                    const teamB = match.teams[1];
+                    const scoreA = match.scores[0]; 
+                    const scoreB = match.scores[1]; 
+
+                    teamStats[teamA].played++;
+                    teamStats[teamB].played++;
+
+                    // Update wins/losses/points
+                    if (match.winner === 0) {
+                        teamStats[teamA].wins++;
+                        teamStats[teamA].points += 1;
+                        teamStats[teamB].losses++;
+                    } else {
+                        teamStats[teamB].wins++;
+                        teamStats[teamB].points += 1;
+                        teamStats[teamA].losses++;
+                    }
+
+                    // Accumulate Games Won/Lost (for Set Points Difference)
+                    teamStats[teamA].gamesWon += scoreA;
+                    teamStats[teamA].gamesLost += scoreB;
+                    teamStats[teamB].gamesWon += scoreB;
+                    teamStats[teamB].gamesLost += scoreA;
+                }
+            });
+
+            // Convert to array and calculate Game Difference
+            let sortedTeams = Object.keys(teamStats).map(name => {
+                const stats = teamStats[name];
+                stats.gameDifference = stats.gamesWon - stats.gamesLost; // Calculate Set Points Difference
+                return { name, ...stats };
+            });
+
+            // Sort: 
+            // 1. Primary: Wins (descending)
+            // 2. Secondary: Game Difference (descending)
+            sortedTeams.sort((a, b) => {
+                // 1. Wins (Points)
+                if (b.wins !== a.wins) {
+                    return b.wins - a.wins;
+                }
+                // 2. Game Difference (Set Points Difference)
+                return b.gameDifference - a.gameDifference;
+            });
+
+            // Assign ranks (handling ties by giving them the same rank)
+            let currentRank = 1;
+            for (let i = 0; i < sortedTeams.length; i++) {
+                if (i > 0) {
+                    const prev = sortedTeams[i-1];
+                    const current = sortedTeams[i];
+                    
+                    // Advance rank if current team has fewer wins OR (same wins AND lower game difference)
+                    if (current.wins < prev.wins || (current.wins === prev.wins && current.gameDifference < prev.gameDifference)) {
+                        currentRank = i + 1;
+                    }
+                }
+                sortedTeams[i].rank = currentRank;
+            }
+
+            state.standings = sortedTeams;
+        }
+
+        function updatePlayoffBracket() {
+            // Check if at least 6 teams have been involved in the ranking calculation
+            if (state.standings.length < 6) {
+                return;
+            }
+
+            // Map Rank to Team Name
+            const rankToTeam = {};
+            state.standings.forEach(team => {
+                rankToTeam[team.rank] = team.name;
+            });
+
+            // 1. Seed Knockouts
+            const ko1 = state.playoffMatches["KO-M1"];
+            ko1.teams[0] = rankToTeam[3] || "Rank 3";
+            ko1.teams[1] = rankToTeam[6] || "Rank 6";
+            
+            const ko2 = state.playoffMatches["KO-M2"];
+            ko2.teams[0] = rankToTeam[4] || "Rank 4";
+            ko2.teams[1] = rankToTeam[5] || "Rank 5";
+
+            // 2. Propagate Knockout Winners to Semi-Finals
+            const sf1 = state.playoffMatches["SF-M1"];
+            sf1.teams[0] = rankToTeam[1] || "Rank 1";
+            sf1.teams[1] = ko2.winner !== null ? ko2.teams[ko2.winner] : "Winner KO-M2";
+            
+            const sf2 = state.playoffMatches["SF-M2"];
+            sf2.teams[0] = rankToTeam[2] || "Rank 2";
+            sf2.teams[1] = ko1.winner !== null ? ko1.teams[ko1.winner] : "Winner KO-M1";
+
+            // 3. Propagate Semi-Final Winners to Final
+            const final = state.playoffMatches["F-M1"];
+            final.teams[0] = sf1.winner !== null ? sf1.teams[sf1.winner] : "Winner SF-M1";
+            final.teams[1] = sf2.winner !== null ? sf2.teams[sf2.winner] : "Winner SF-M2";
+            
+            // Re-calculate winners recursively in case standings changed or scores were edited
+            Object.keys(state.playoffMatches).forEach(matchId => {
+                // If the match has scores, ensure the winner is correctly calculated and propagated
+                if (state.playoffMatches[matchId].scores[0] !== null) {
+                    const winnerIndex = determineWinner(state.playoffMatches[matchId].scores[0], state.playoffMatches[matchId].scores[1]);
+                    propagatePlayoffWinner(matchId, winnerIndex);
+                } else if (!state.playoffMatches[matchId].teams[0].startsWith('Rank') && !state.playoffMatches[matchId].teams[1].startsWith('Rank')) {
+                    // Match ready to play, but no score yet. Ensure winner is null.
+                    state.playoffMatches[matchId].winner = null;
+                }
+            });
+        }
+
+        function propagatePlayoffWinner(matchId, winnerIndex) {
+            const matchData = state.playoffMatches[matchId];
+            
+            // If the winner index is null (invalid score or game unfinished), clear the winner and stop propagation
+            if (winnerIndex === null) {
+                if (matchData.winner !== null) {
+                    matchData.winner = null; // Clear if previously set
+                    // Fall through to clear downstream matches
+                } else {
+                    return;
+                }
+            }
+
+            // Only proceed if the winner index is valid (0 or 1)
+            if (winnerIndex !== null) {
+                matchData.winner = winnerIndex;
+            }
+
+            const winnerTeam = matchData.teams[matchData.winner];
+            const nextMatchId = matchData.nextMatch;
+
+            if (nextMatchId) {
+                const nextMatch = state.playoffMatches[nextMatchId];
+                const slotIndex = matchData.winnerSlot;
+
+                // Propagate winner team name to the next match slot
+                nextMatch.teams[slotIndex] = winnerIndex !== null ? winnerTeam : `Winner ${matchId}`;
+                
+                // Clear score and winner of the next match if the input team is unknown or scores are invalid
+                if (winnerIndex === null || nextMatch.teams[0].startsWith('Rank') || nextMatch.teams[1].startsWith('Winner')) {
+                    nextMatch.scores = [null, null];
+                    nextMatch.winner = null;
+                }
+                
+                // Recursively propagate if the next match had a winner defined
+                if (nextMatch.winner !== null) {
+                    propagatePlayoffWinner(nextMatchId, nextMatch.winner);
+                }
+            } else if (matchId === 'F-M1' && winnerTeam && winnerIndex !== null) {
+                // Champion found
+                championName.textContent = winnerTeam;
+                championDisplay.classList.remove('hidden');
+            }
+        }
+        
+        // --- Rendering Functions ---
+
+        function renderStandings() {
+            calculateStandings();
+            standingsBody.innerHTML = '';
+            
+            if (state.standings.length === 0) return;
+            
+            let completedMatches = state.leagueMatches.filter(m => m.winner !== null).length;
+            document.querySelector('.mb-10 h2').textContent = `League Matches (${completedMatches}/${state.leagueMatches.length} Completed)`;
+
+
+            state.standings.forEach(team => {
+                // Top 6 qualify for playoffs
+                const isPlayoffSpot = team.rank >= 1 && team.rank <= 6; 
+                const badgeClass = team.rank === 1 ? 'rank-1' : team.rank === 2 ? 'rank-2' : isPlayoffSpot ? 'rank-playoff' : 'bg-gray-300';
+                const row = document.createElement('tr');
+                row.classList.add('match-row');
+                row.innerHTML = `
+                    <td class="px-3 py-4 whitespace-nowrap">
+                        <div class="rank-badge ${badgeClass}">${team.rank}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${team.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">${team.played}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-green-600 font-semibold">${team.wins}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-red-600 font-semibold">${team.losses}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-700 font-semibold">
+                        ${team.gameDifference > 0 ? '+' : ''}${team.gameDifference}
+                    </td>
+                `;
+                standingsBody.appendChild(row);
+            });
+        }
+
+        function renderLeagueMatches() {
+            leagueMatchesList.innerHTML = '';
+            state.leagueMatches.forEach((match, index) => {
+                const isCompleted = match.winner !== null;
+                const scoreA = match.scores[0] !== null ? match.scores[0] : 0;
+                const scoreB = match.scores[1] !== null ? match.scores[1] : 0;
+                
+                const scoreDisplay = isCompleted 
+                    ? `<span class="${match.winner === 0 ? 'text-green-600 font-bold' : 'text-red-600'}">${scoreA}</span> - <span class="${match.winner === 1 ? 'text-green-600 font-bold' : 'text-red-600'}">${scoreB}</span>` 
+                    : `${scoreA} - ${scoreB}`;
+                
+                const matchDiv = document.createElement('div');
+                matchDiv.classList.add('flex', 'justify-between', 'items-center', 'p-3', 'rounded-lg', 'border', isCompleted ? 'bg-green-50' : 'bg-white', isCompleted ? 'border-green-200' : 'border-gray-200');
+                
+                matchDiv.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm font-medium text-gray-700">${match.id} | ${match.teams[0]} vs ${match.teams[1]}</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-sm font-mono">${scoreDisplay}</div>
+                        <button onclick="openModal('${match.id}', 'league')" class="px-3 py-1 text-xs font-semibold rounded-lg transition ${isCompleted ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}">
+                            ${isCompleted ? 'Edit Score' : 'Enter Score'}
+                        </button>
+                    </div>
+                `;
+                leagueMatchesList.appendChild(matchDiv);
+            });
+        }
+
+        function renderPlayoffMatches() {
+            updatePlayoffBracket();
+            Object.keys(state.playoffMatches).forEach(matchId => {
+                const matchData = state.playoffMatches[matchId];
+                const element = document.getElementById(matchId);
+                if (!element) return;
+
+                const isCompleted = matchData.winner !== null;
+                const isReady = !matchData.teams.some(team => team.startsWith('Rank') || team.startsWith('Winner'));
+                
+                const winnerClass = isCompleted ? 'bg-green-100 border-green-500' : isReady ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-100 border-gray-300';
+                const winnerTextClass = isCompleted ? 'text-green-700 font-bold' : 'text-gray-900';
+                const buttonColorClass = isCompleted ? 'bg-green-600 hover:bg-green-700' : isReady ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 cursor-not-allowed';
+
+                // Re-apply base classes and dynamic winner class
+                element.className = 'playoff-node p-3 rounded-lg shadow border ' + winnerClass;
+
+                element.innerHTML = `
+                    <div class="text-xs font-semibold text-gray-500 mb-1">${matchId}</div>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-1 mb-1">
+                        <span class="truncate text-sm ${matchData.winner === 0 ? winnerTextClass : 'text-gray-900'}">
+                            ${matchData.teams[0]}
+                        </span>
+                        <span class="text-sm font-mono text-gray-700">${matchData.scores[0] !== null ? matchData.scores[0] : '-'}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="truncate text-sm ${matchData.winner === 1 ? winnerTextClass : 'text-gray-900'}">
+                            ${matchData.teams[1]}
+                        </span>
+                        <span class="text-sm font-mono text-gray-700">${matchData.scores[1] !== null ? matchData.scores[1] : '-'}</span>
+                    </div>
+                    <button 
+                        onclick="${isReady ? `openModal('${matchId}', 'playoff')` : ''}" 
+                        class="mt-2 w-full text-xs font-semibold py-1 px-2 rounded-lg transition text-white ${buttonColorClass}"
+                        ${!isReady ? 'disabled' : ''}
+                    >
+                        ${isCompleted ? 'Edit Score' : isReady ? 'Enter Score' : 'Waiting for Teams'}
+                    </button>
+                `;
+            });
+
+             // Champion Display
+            if (state.playoffMatches["F-M1"].winner !== null) {
+                championName.textContent = state.playoffMatches["F-M1"].teams[state.playoffMatches["F-M1"].winner];
+                championDisplay.classList.remove('hidden');
+            } else {
+                championDisplay.classList.add('hidden');
+            }
+        }
+
+
+        function updateAllViews() {
+            renderStandings();
+            renderLeagueMatches();
+            renderPlayoffMatches();
+        }
+
+        // --- Modal Control ---
+
+        window.openModal = (matchId, type) => {
+            state.activeMatchId = matchId;
+            state.activeMatchType = type;
+            
+            let matchData;
+            if (type === 'league') {
+                matchData = state.leagueMatches.find(m => m.id === matchId);
+            } else {
+                matchData = state.playoffMatches[matchId];
+            }
+
+            modalTitle.textContent = `Enter Score for ${matchId} (${type.toUpperCase()})`;
+            
+            // Check if playoff match teams are placeholders
+            if (type === 'playoff' && (!matchData.teams[0] || matchData.teams[0].startsWith('Rank') || matchData.teams[0].startsWith('Winner'))) {
+                modalError.textContent = "This match is not ready yet. Complete the preceding matches first.";
+                modalError.style.display = 'block';
+                return;
+            }
+
+            teamALabel.textContent = matchData.teams[0];
+            teamBLabel.textContent = matchData.teams[1];
+            
+            // Pre-fill with existing scores or 0
+            teamAScoreInput.value = matchData.scores[0] !== null ? matchData.scores[0] : 0;
+            teamBScoreInput.value = matchData.scores[1] !== null ? matchData.scores[1] : 0;
+            
+            modalError.style.display = 'none';
+            scoreModal.classList.remove('hidden');
+            teamAScoreInput.focus();
+        }
+
+        window.closeModal = (event) => {
+            // Only close if the background overlay is clicked, or if called programmatically
+            if (event && event.target.id !== 'score-modal') return;
+            scoreModal.classList.add('hidden');
+            state.activeMatchId = null;
+            state.activeMatchType = null;
+            modalError.style.display = 'none';
+        }
+
+        window.submitScore = async () => {
+            const matchId = state.activeMatchId;
+            const type = state.activeMatchType;
+            if (!matchId || !type) return;
+
+            const scoreA = parseInt(teamAScoreInput.value);
+            const scoreB = parseInt(teamBScoreInput.value);
+
+            // Basic validation
+            if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+                modalError.textContent = "Please enter valid, non-negative numbers for scores.";
+                modalError.style.display = 'block';
+                return;
+            }
+
+            const winnerIndex = determineWinner(scoreA, scoreB);
+
+            if (winnerIndex === null) {
+                modalError.textContent = "Invalid set score. A winner must reach 6 games and lead by 2, or finish 7-6.";
+                modalError.style.display = 'block';
+                return;
+            }
+            
+            // Update state
+            if (type === 'league') {
+                const matchIndex = state.leagueMatches.findIndex(m => m.id === matchId);
+                if (matchIndex !== -1) {
+                    state.leagueMatches[matchIndex].scores = [scoreA, scoreB];
+                    state.leagueMatches[matchIndex].winner = winnerIndex;
+                }
+            } else if (type === 'playoff') {
+                const matchData = state.playoffMatches[matchId];
+                matchData.scores = [scoreA, scoreB];
+                // Propagate winner immediately after local update
+                propagatePlayoffWinner(matchId, winnerIndex);
+            }
+            
+            // Save updated state to Firestore for persistence
+            await saveState();
+
+            // Close modal (UI will refresh via onSnapshot)
+            closeModal();
+        }
+
+        // --- Initialization ---
+        window.onload = () => {
+             initFirebase();
+             
+             // Set up event listeners for inputs to allow enter key submission
+            teamAScoreInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') submitScore(); });
+            teamBScoreInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') submitScore(); });
+        };
+    </script>
+</body>
+</html>
