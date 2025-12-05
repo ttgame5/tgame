@@ -217,7 +217,7 @@
         let isAuthReady = false;
 
         const DB_COLLECTION = `artifacts/${appId}/public/data/league_tracker`;
-        const DB_DOC_ID = 'tournament_state';
+        const DB_DOC_ID = 'tournament_state_v2'; // Changed to force fresh state
 
         // --- Global Constants & State ---
         const TEAMS = [
@@ -395,6 +395,10 @@
                 if (match.winner !== null) {
                     const teamA = match.teams[0];
                     const teamB = match.teams[1];
+                    
+                    // Safety check to prevent errors if old data is in DB
+                    if (!teamStats[teamA] || !teamStats[teamB]) return;
+
                     const scoreA = match.scores[0]; 
                     const scoreB = match.scores[1]; 
 
