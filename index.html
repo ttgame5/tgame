@@ -3,755 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7-Team Tennis League Tracker</title>
+    <title>Firebase Status Checker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
-        .match-row:hover { background-color: #f1f5f9; }
-        .rank-badge { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 700; border-radius: 9999px; }
-        .rank-1 { background-color: #facc15; color: #78350f; } /* Gold */
-        .rank-2 { background-color: #94a3b8; color: #1e293b; } /* Silver */
-        .rank-playoff { background-color: #10b981; color: white; } /* Playoff Green */
-        .playoff-node { min-height: 4rem; }
-        .nav-active { background-color: #4f46e5; color: white; }
-        .nav-inactive { background-color: white; color: #4b5563; }
-        .nav-inactive:hover { background-color: #f3f4f6; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .container {
+            max-width: 600px;
+        }
     </style>
 </head>
-<body class="p-4 md:p-8 bg-gray-50">
+<body class="p-6 md:p-10 flex items-center justify-center min-h-screen">
 
-    <div id="app" class="max-w-5xl mx-auto min-h-screen flex flex-col">
-        <!-- Header & Navigation -->
-        <header class="mb-8 pb-4 border-b border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">
-                        7-Team Tennis League
-                    </h1>
-                    <p class="text-gray-500 text-sm font-medium">Official Tournament Tracker</p>
-                </div>
-                
-                <nav class="flex space-x-2 bg-gray-100 p-1 rounded-xl">
-                    <button onclick="window.switchTab('standings')" id="tab-standings" class="px-5 py-2 rounded-lg font-semibold text-sm transition shadow-sm nav-active">
-                        Standings
-                    </button>
-                    <button onclick="window.switchTab('fixtures')" id="tab-fixtures" class="px-5 py-2 rounded-lg font-semibold text-sm transition nav-inactive">
-                        Fixtures & Results
-                    </button>
-                    <button onclick="window.switchTab('playoffs')" id="tab-playoffs" class="px-5 py-2 rounded-lg font-semibold text-sm transition nav-inactive">
-                        Playoffs
-                    </button>
-                </nav>
-            </div>
-        </header>
-
-        <!-- MAIN CONTENT -->
-        <main class="flex-grow relative">
-            
-            <!-- VIEW 1: STANDINGS -->
-            <div id="view-standings" class="view-section transition-opacity duration-300">
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-                    <div class="flex justify-between items-end mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">League Standings</h2>
-                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Ranked by Wins > G.Diff</span>
-                    </div>
-                    
-                    <div class="overflow-x-auto rounded-lg border border-gray-100">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Rank</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Team Name</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Played</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-green-600 uppercase tracking-wider">Wins</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-red-500 uppercase tracking-wider">Losses</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-indigo-600 uppercase tracking-wider">Pts</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">G.Diff</th>
-                                </tr>
-                            </thead>
-                            <tbody id="standings-body" class="bg-white divide-y divide-gray-200">
-                                <!-- Injected JS -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button onclick="window.switchTab('fixtures')" class="group flex items-center justify-center p-5 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
-                            <div class="text-left">
-                                <span class="block text-lg font-bold">Add Score</span>
-                                <span class="block text-indigo-200 text-xs font-medium">Record results for completed matches</span>
-                            </div>
-                            <svg class="w-6 h-6 ml-auto opacity-70 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        </button>
-                        <button onclick="window.switchTab('fixtures')" class="group flex items-center justify-center p-5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-indigo-600 hover:text-indigo-600 transition-all">
-                            <div class="text-left">
-                                <span class="block text-lg font-bold">Fixtures & Results</span>
-                                <span class="block text-gray-400 text-xs font-medium group-hover:text-indigo-400">View upcoming schedule and past results</span>
-                            </div>
-                            <svg class="w-6 h-6 ml-auto text-gray-400 group-hover:text-indigo-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW 2: FIXTURES -->
-            <div id="view-fixtures" class="view-section hidden">
-                
-                <!-- Completed Matches Section -->
-                <div class="mb-10">
-                    <h2 class="flex items-center text-xl font-bold text-gray-800 mb-4">
-                        <span class="w-2 h-8 bg-green-500 rounded-r-md mr-3"></span>
-                        Results (Completed)
-                    </h2>
-                    <div id="matches-completed-list" class="grid gap-3">
-                        <!-- Injected JS -->
-                        <div class="text-gray-400 italic p-6 text-center bg-white rounded-xl border border-dashed border-gray-300">No matches completed yet.</div>
-                    </div>
-                </div>
-
-                <!-- Upcoming Matches Section -->
-                <div>
-                    <h2 class="flex items-center text-xl font-bold text-gray-800 mb-4">
-                        <span class="w-2 h-8 bg-indigo-500 rounded-r-md mr-3"></span>
-                        Fixtures (Upcoming)
-                    </h2>
-                    <div id="matches-upcoming-list" class="grid gap-3">
-                        <!-- Injected JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW 3: PLAYOFFS -->
-            <div id="view-playoffs" class="view-section hidden">
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-2xl font-bold text-gray-800">Playoff Bracket</h2>
-                        <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">Top 6 Qualify</span>
-                    </div>
-                    
-                    <div id="playoff-bracket" class="grid grid-cols-2 md:grid-cols-4 gap-6 relative">
-                        <!-- Knockouts -->
-                        <div class="col-span-1 flex flex-col justify-center gap-12 border-r border-gray-100 pr-4">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 text-center md:hidden">Knockouts</h3>
-                            <div id="KO-M1" class="playoff-node bg-gray-50 p-4 rounded-xl border hover:shadow-md transition"></div>
-                            <div id="KO-M2" class="playoff-node bg-gray-50 p-4 rounded-xl border hover:shadow-md transition"></div>
-                        </div>
-
-                        <!-- Semi-Finals -->
-                        <div class="col-span-1 flex flex-col justify-center gap-24 border-r border-gray-100 pr-4 md:pl-4">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 text-center md:hidden">Semi-Finals</h3>
-                            <div id="SF-M1" class="playoff-node bg-gray-50 p-4 rounded-xl border hover:shadow-md transition"></div>
-                            <div id="SF-M2" class="playoff-node bg-gray-50 p-4 rounded-xl border hover:shadow-md transition"></div>
-                        </div>
-
-                        <!-- Final -->
-                        <div class="col-span-2 md:col-span-2 flex flex-col justify-center items-center md:pl-4">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 md:hidden">Final</h3>
-                            <div class="relative w-full max-w-sm">
-                                <div class="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-yellow-200 rounded-2xl blur opacity-25"></div>
-                                <div id="F-M1" class="relative playoff-node bg-white border-2 border-yellow-300 p-6 rounded-xl shadow-xl"></div>
-                            </div>
-                            
-                            <div id="champion-display" class="mt-8 p-6 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl text-center hidden w-full max-w-sm">
-                                <div class="text-4xl mb-2">🏆</div>
-                                <p class="text-sm text-green-600 font-bold uppercase tracking-wider">Champion</p>
-                                <p id="champion-name" class="text-3xl font-black text-gray-800 mt-1"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
+    <div id="app-container" class="container w-full bg-white shadow-xl rounded-xl p-8 space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800 text-center">Firebase Connection Status</h1>
         
-        <!-- Score Input Modal -->
-        <div id="score-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4" onclick="window.closeModal(event)">
-            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all scale-100" onclick="event.stopPropagation()">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 id="modal-title" class="text-2xl font-bold text-gray-800">Enter Score</h3>
-                    <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <div class="space-y-6">
-                    <p class="text-sm bg-red-50 text-red-600 p-3 rounded-lg border border-red-100 hidden" id="modal-error"></p>
-                    
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <label id="team-a-label" for="team-a-score" class="font-bold text-gray-700 w-2/3 truncate text-lg">Team A</label>
-                        <input type="number" id="team-a-score" min="0" class="w-20 p-2 text-center text-xl font-mono font-bold bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" value="0">
-                    </div>
-                    
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <label id="team-b-label" for="team-b-score" class="font-bold text-gray-700 w-2/3 truncate text-lg">Team B</label>
-                        <input type="number" id="team-b-score" min="0" class="w-20 p-2 text-center text-xl font-mono font-bold bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" value="0">
-                    </div>
-                </div>
-                
-                <div class="mt-8 flex justify-end space-x-3">
-                    <button onclick="window.closeModal()" class="px-5 py-2.5 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition">Cancel</button>
-                    <button onclick="window.submitScore()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition font-bold">Save Result</button>
-                </div>
-            </div>
+        <div id="status-card" class="p-4 rounded-lg border-2 border-gray-200">
+            <p class="font-semibold text-lg mb-2 text-blue-600 flex items-center">
+                <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="auth-status-text">Attempting Authentication...</span>
+            </p>
+
+            <ul class="text-sm text-gray-600 space-y-2 mt-4">
+                <li><strong>App ID:</strong> <code id="app-id" class="bg-gray-100 p-1 rounded">Loading...</code></li>
+                <li><strong>User ID:</strong> <code id="user-id" class="bg-gray-100 p-1 rounded break-all">Awaiting authentication...</code></li>
+                <li><strong>Persistence:</strong> <span id="persistence-status">Not applicable in this environment.</span></li>
+            </ul>
+        </div>
+
+        <div id="error-message" class="hidden p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <h3 class="font-bold">Error Details:</h3>
+            <p id="error-text" class="text-sm mt-1"></p>
         </div>
     </div>
 
     <script type="module">
-        // Firebase imports for persistence
+        // Import Firebase modules using the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Set Firebase logging level to Debug
-        setLogLevel('Debug');
-
-        // --- Firebase Setup ---
+        // IMPORTANT: Use the provided global variables securely
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        let app, db, auth, userId = null;
-        let isAuthReady = false;
+        let app;
+        let auth;
+        let db;
 
-        const DB_COLLECTION = `artifacts/${appId}/public/data/league_tracker`;
-        const DB_DOC_ID = 'tournament_state_v2'; // Changed to force fresh state
+        const authStatusText = document.getElementById('auth-status-text');
+        const userIdDisplay = document.getElementById('user-id');
+        const appIdDisplay = document.getElementById('app-id');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessageDiv = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
 
-        // --- Global Constants & State ---
-        const TEAMS = [
-            "Ilavatta Pasanga", "Saravedi", "Legends", "Silent Kings",
-            "Alapparai", "Baasha", "Prince Warriors"
-        ];
-
-        // League Matches Schedule
-        // Revised based on specific match list 1-7, and then round-robin for rest
-        const LEAGUE_MATCHES_DEFINITIONS = [
-            // Matches 1-7 as requested
-            { id: "L-M1", teams: ["Ilavatta Pasanga", "Saravedi"] },
-            { id: "L-M2", teams: ["Legends", "Silent Kings"] },
-            { id: "L-M3", teams: ["Baasha", "Alapparai"] }, 
-            { id: "L-M4", teams: ["Ilavatta Pasanga", "Baasha"] },
-            { id: "L-M5", teams: ["Alapparai", "Silent Kings"] }, 
-            { id: "L-M6", teams: ["Saravedi", "Legends"] }, 
-            { id: "L-M7", teams: ["Prince Warriors", "Alapparai"] }, 
-            
-            // Remaining Round Robin matches (to ensure all play all)
-            { id: "L-M8", teams: ["Ilavatta Pasanga", "Legends"] },   
-            { id: "L-M9", teams: ["Prince Warriors", "Ilavatta Pasanga"] }, 
-            { id: "L-M10", teams: ["Prince Warriors", "Baasha"] },       
-            { id: "L-M11", teams: ["Ilavatta Pasanga", "Silent Kings"] }, 
-            { id: "L-M12", teams: ["Saravedi", "Alapparai"] },       
-            { id: "L-M13", teams: ["Prince Warriors", "Legends"] },      
-            { id: "L-M14", teams: ["Baasha", "Silent Kings"] },       
-            { id: "L-M15", teams: ["Prince Warriors", "Silent Kings"] },  
-            { id: "L-M16", teams: ["Ilavatta Pasanga", "Alapparai"] }, 
-            { id: "L-M17", teams: ["Saravedi", "Baasha"] },          
-            { id: "L-M18", teams: ["Legends", "Baasha"] },
-            { id: "L-M19", teams: ["Prince Warriors", "Saravedi"] }, 
-            { id: "L-M20", teams: ["Legends", "Alapparai"] },
-            { id: "L-M21", teams: ["Silent Kings", "Saravedi"] }    
-        ];
-        
-        // Playoff Structure
-        const PLAYOFF_MATCHES_DEFINITIONS = {
-            "KO-M1": { teams: ["Rank 3", "Rank 6"], scores: [null, null], winner: null, nextMatch: "SF-M2", winnerSlot: 1 },
-            "KO-M2": { teams: ["Rank 4", "Rank 5"], scores: [null, null], winner: null, nextMatch: "SF-M1", winnerSlot: 1 },
-            "SF-M1": { teams: ["Rank 1", "Winner KO-M2"], scores: [null, null], winner: null, nextMatch: "F-M1", winnerSlot: 0 },
-            "SF-M2": { teams: ["Rank 2", "Winner KO-M1"], scores: [null, null], winner: null, nextMatch: "F-M1", winnerSlot: 1 },
-            "F-M1": { teams: ["Winner SF-M1", "Winner SF-M2"], scores: [null, null], winner: null, nextMatch: null, winnerSlot: null },
-        };
-
-        // Initial State - Pre-filling scores as requested
-        const INITIAL_LEAGUE_MATCHES_STATE = LEAGUE_MATCHES_DEFINITIONS.map(m => {
-            if (m.id === "L-M1") return { ...m, scores: [6, 1], winner: 0 }; // Ilavatta vs Saravedi
-            if (m.id === "L-M2") return { ...m, scores: [6, 4], winner: 0 }; // Legends vs Silent Kings
-            if (m.id === "L-M3") return { ...m, scores: [6, 2], winner: 0 }; // Baasha vs Alapparai
-            if (m.id === "L-M4") return { ...m, scores: [6, 4], winner: 0 }; // Ilavatta vs Baasha
-            if (m.id === "L-M5") return { ...m, scores: [6, 1], winner: 0 }; // Alapparai vs Silent Kings
-            // L-M6 Saravedi vs Legends is pending (null)
-            if (m.id === "L-M7") return { ...m, scores: [3, 6], winner: 1 }; // Prince Warriors vs Alapparai (Alapparai won)
-            return { ...m, scores: [null, null], winner: null };
-        });
-
-        let state = {
-            leagueMatches: INITIAL_LEAGUE_MATCHES_STATE,
-            playoffMatches: JSON.parse(JSON.stringify(PLAYOFF_MATCHES_DEFINITIONS)),
-            standings: {},
-            activeMatchId: null,
-            activeMatchType: null
-        };
-
-        // UI elements
-        const scoreModal = document.getElementById('score-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const teamALabel = document.getElementById('team-a-label');
-        const teamBLabel = document.getElementById('team-b-label');
-        const teamAScoreInput = document.getElementById('team-a-score');
-        const teamBScoreInput = document.getElementById('team-b-score');
-        const modalError = document.getElementById('modal-error');
-        const standingsBody = document.getElementById('standings-body');
-        
-        // Split Match Lists
-        const matchesCompletedList = document.getElementById('matches-completed-list');
-        const matchesUpcomingList = document.getElementById('matches-upcoming-list');
-        
-        const championDisplay = document.getElementById('champion-display');
-        const championName = document.getElementById('champion-name');
-
-        // --- View Switching Logic ---
-        window.switchTab = (tabName) => {
-            // Hide all views
-            ['standings', 'fixtures', 'playoffs'].forEach(view => {
-                document.getElementById(`view-${view}`).classList.add('hidden');
-                const btn = document.getElementById(`tab-${view}`);
-                if (btn) {
-                    btn.classList.remove('nav-active');
-                    btn.classList.add('nav-inactive');
-                }
-            });
-
-            // Show selected view
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            if (activeBtn) {
-                activeBtn.classList.remove('nav-inactive');
-                activeBtn.classList.add('nav-active');
-            }
-        };
-
-        // --- Firebase Initialization ---
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
         async function initFirebase() {
             try {
+                // 1. Initialize App
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    throw new Error("Firebase Config is invalid or missing apiKey. Check the '__firebase_config' variable.");
+                }
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                setLogLevel('debug'); // Enable detailed console logging for debugging
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                    } else {
-                        await signInAnonymously(auth);
-                        userId = auth.currentUser.uid;
-                    }
-                    isAuthReady = true;
-                    startSnapshotListener();
-                });
+                appIdDisplay.textContent = appId;
+                
+                authStatusText.textContent = "Authenticating...";
+                loadingSpinner.classList.remove('hidden');
 
+                // 2. Handle Authentication
+                // Use the custom token if provided, otherwise sign in anonymously
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
-                }
-            } catch (error) {
-                console.error("Firebase init failed:", error);
-            }
-        }
-
-        function startSnapshotListener() {
-            if (!isAuthReady) return;
-            const docRef = doc(db, DB_COLLECTION, DB_DOC_ID);
-
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    state.leagueMatches = data.leagueMatches || state.leagueMatches;
-                    state.playoffMatches = data.playoffMatches || state.playoffMatches;
+                    console.log("Signed in with custom token.");
                 } else {
-                    saveState(); 
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
                 }
-                updateAllViews();
-            });
-        }
-        
-        async function saveState() {
-            if (!isAuthReady) return;
-            try {
-                 await setDoc(doc(db, DB_COLLECTION, DB_DOC_ID), {
-                    leagueMatches: state.leagueMatches,
-                    playoffMatches: state.playoffMatches,
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-            } catch (error) {
-                console.error("Firestore save error:", error);
-            }
-        }
 
-        // --- Core Logic ---
-        function determineWinner(scoreA, scoreB) {
-            const diff = Math.abs(scoreA - scoreB);
-            if ((scoreA >= 6 || scoreB >= 6) && diff >= 2) return scoreA > scoreB ? 0 : 1;
-            if (scoreA === 7 && scoreB === 6) return 0;
-            if (scoreB === 7 && scoreA === 6) return 1;
-            return null;
-        }
+                // 3. Set up Auth State Listener
+                onAuthStateChanged(auth, (user) => {
+                    loadingSpinner.classList.add('hidden');
+                    if (user) {
+                        userIdDisplay.textContent = user.uid;
+                        authStatusText.textContent = "Connection SUCCESSFUL!";
+                        authStatusText.classList.remove('text-blue-600');
+                        authStatusText.classList.add('text-green-600');
+                        document.getElementById('status-card').classList.remove('border-gray-200');
+                        document.getElementById('status-card').classList.add('border-green-400');
+                        console.log("User successfully authenticated:", user.uid);
 
-        function calculateStandings() {
-            const teamStats = {};
-            TEAMS.forEach(team => {
-                teamStats[team] = { played: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0, gameDifference: 0, points: 0, rank: 0 };
-            });
+                        // Example: You can now start Firestore operations here
+                        // For example: listenToData(db, user.uid);
 
-            state.leagueMatches.forEach(match => {
-                if (match.winner !== null) {
-                    const teamA = match.teams[0];
-                    const teamB = match.teams[1];
-                    
-                    // Safety check to prevent errors if old data is in DB
-                    if (!teamStats[teamA] || !teamStats[teamB]) return;
-
-                    const scoreA = match.scores[0]; 
-                    const scoreB = match.scores[1]; 
-
-                    teamStats[teamA].played++;
-                    teamStats[teamB].played++;
-
-                    if (match.winner === 0) {
-                        teamStats[teamA].wins++;
-                        teamStats[teamA].points += 2; // 2 points for Win
-                        teamStats[teamB].losses++;
-                        teamStats[teamB].points += 1; // 1 point for Loss
                     } else {
-                        teamStats[teamB].wins++;
-                        teamStats[teamB].points += 2; // 2 points for Win
-                        teamStats[teamA].losses++;
-                        teamStats[teamA].points += 1; // 1 point for Loss
+                        userIdDisplay.textContent = "No user authenticated.";
+                        authStatusText.textContent = "Authentication FAILED (Anonymous/Token failure).";
+                        authStatusText.classList.remove('text-blue-600');
+                        authStatusText.classList.add('text-red-600');
+                        document.getElementById('status-card').classList.remove('border-gray-200');
+                        document.getElementById('status-card').classList.add('border-red-400');
+                        console.error("Authentication failed: No user object received.");
                     }
+                });
 
-                    teamStats[teamA].gamesWon += scoreA;
-                    teamStats[teamA].gamesLost += scoreB;
-                    teamStats[teamB].gamesWon += scoreB;
-                    teamStats[teamB].gamesLost += scoreA;
-                }
-            });
 
-            let sortedTeams = Object.keys(teamStats).map(name => {
-                const stats = teamStats[name];
-                stats.gameDifference = stats.gamesWon - stats.gamesLost; 
-                return { name, ...stats };
-            });
+            } catch (error) {
+                // Handle the initialization error (like the one you reported)
+                console.error("Firebase Init Error:", error);
+                loadingSpinner.classList.add('hidden');
+                authStatusText.textContent = "Connection FAILED!";
+                authStatusText.classList.remove('text-blue-600');
+                authStatusText.classList.add('text-red-600');
 
-            // Sort: 1. Matches Won, 2. Game Difference (total points scored / gave points to opponents)
-            sortedTeams.sort((a, b) => {
-                if (b.wins !== a.wins) return b.wins - a.wins;
-                return b.gameDifference - a.gameDifference;
-            });
-
-            let currentRank = 1;
-            for (let i = 0; i < sortedTeams.length; i++) {
-                if (i > 0) {
-                    const prev = sortedTeams[i-1];
-                    const current = sortedTeams[i];
-                    if (current.wins < prev.wins || (current.wins === prev.wins && current.gameDifference < prev.gameDifference)) {
-                        currentRank = i + 1;
-                    }
-                }
-                sortedTeams[i].rank = currentRank;
-            }
-            state.standings = sortedTeams;
-        }
-
-        function updatePlayoffBracket() {
-            if (state.standings.length !== TEAMS.length) return;
-
-            const rankToTeam = {};
-            state.standings.forEach(team => {
-                rankToTeam[team.rank] = team.name;
-            });
-
-            const ko1 = state.playoffMatches["KO-M1"];
-            ko1.teams[0] = rankToTeam[3] || "Rank 3";
-            ko1.teams[1] = rankToTeam[6] || "Rank 6";
-            
-            const ko2 = state.playoffMatches["KO-M2"];
-            ko2.teams[0] = rankToTeam[4] || "Rank 4";
-            ko2.teams[1] = rankToTeam[5] || "Rank 5";
-
-            const sf1 = state.playoffMatches["SF-M1"];
-            sf1.teams[0] = rankToTeam[1] || "Rank 1";
-            sf1.teams[1] = ko2.winner !== null ? ko2.teams[ko2.winner] : "Winner KO-M2";
-            
-            const sf2 = state.playoffMatches["SF-M2"];
-            sf2.teams[0] = rankToTeam[2] || "Rank 2";
-            sf2.teams[1] = ko1.winner !== null ? ko1.teams[ko1.winner] : "Winner KO-M1";
-
-            const final = state.playoffMatches["F-M1"];
-            final.teams[0] = sf1.winner !== null ? sf1.teams[sf1.winner] : "Winner SF-M1";
-            final.teams[1] = sf2.winner !== null ? sf2.teams[sf2.winner] : "Winner SF-M2";
-            
-            Object.keys(state.playoffMatches).forEach(matchId => {
-                const matchData = state.playoffMatches[matchId];
-                if (matchData.scores[0] !== null) {
-                    const winnerIndex = determineWinner(matchData.scores[0], matchData.scores[1]);
-                    propagatePlayoffWinner(matchId, winnerIndex);
-                }
-            });
-        }
-
-        function propagatePlayoffWinner(matchId, winnerIndex) {
-            const matchData = state.playoffMatches[matchId];
-            if (winnerIndex === null) {
-                if (matchData.winner !== null) matchData.winner = null;
-                clearDownstreamMatch(matchId);
-                return;
-            }
-            matchData.winner = winnerIndex;
-            const winnerTeam = matchData.teams[matchData.winner];
-            const nextMatchId = matchData.nextMatch;
-
-            if (nextMatchId) {
-                const nextMatch = state.playoffMatches[nextMatchId];
-                const slotIndex = matchData.winnerSlot;
-                nextMatch.teams[slotIndex] = winnerTeam;
-                if (nextMatch.winner !== null) propagatePlayoffWinner(nextMatchId, nextMatch.winner);
-            } else if (matchId === 'F-M1' && winnerTeam && winnerIndex !== null) {
-                championName.textContent = winnerTeam;
-                championDisplay.classList.remove('hidden');
-            }
-        }
-        
-        function clearDownstreamMatch(currentMatchId) {
-            Object.keys(state.playoffMatches).forEach(nextMatchId => {
-                const nextMatch = state.playoffMatches[nextMatchId];
-                if (nextMatch.teams.includes(`Winner ${currentMatchId}`)) {
-                    const slotIndex = nextMatch.teams.findIndex(t => t === `Winner ${currentMatchId}`);
-                    if (currentMatchId === "KO-M1") nextMatch.teams[slotIndex] = "Winner KO-M1";
-                    if (currentMatchId === "KO-M2") nextMatch.teams[slotIndex] = "Winner KO-M2";
-                    if (currentMatchId === "SF-M1") nextMatch.teams[slotIndex] = "Winner SF-M1";
-                    if (currentMatchId === "SF-M2") nextMatch.teams[slotIndex] = "Winner SF-M2";
-                    if (nextMatch.winner !== null) {
-                        nextMatch.scores = [null, null];
-                        nextMatch.winner = null;
-                        clearDownstreamMatch(nextMatchId);
-                    }
-                }
-            });
-        }
-        
-        // --- Rendering Functions ---
-
-        function renderStandings() {
-            calculateStandings();
-            standingsBody.innerHTML = '';
-            if (state.standings.length === 0) return;
-
-            state.standings.forEach(team => {
-                const isPlayoffSpot = team.rank >= 1 && team.rank <= 6; 
-                const badgeClass = team.rank === 1 ? 'rank-1' : team.rank === 2 ? 'rank-2' : isPlayoffSpot ? 'rank-playoff' : 'bg-gray-300 text-gray-700';
-                const row = document.createElement('tr');
-                row.classList.add('match-row', 'transition');
-                row.innerHTML = `
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="rank-badge ${badgeClass}">${team.rank}</div>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">${team.name}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-500">${team.played}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-green-600 font-bold">${team.wins}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-red-500 font-bold">${team.losses}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-indigo-600 font-bold">${team.points}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-700 font-bold bg-gray-50 rounded-lg">
-                        ${team.gameDifference > 0 ? '+' : ''}${team.gameDifference}
-                    </td>
-                `;
-                standingsBody.appendChild(row);
-            });
-        }
-
-        function createMatchElement(match, type) {
-            const isCompleted = match.winner !== null;
-            const scoreA = match.scores[0] !== null ? match.scores[0] : 0;
-            const scoreB = match.scores[1] !== null ? match.scores[1] : 0;
-            
-            const matchDiv = document.createElement('div');
-            
-            if (isCompleted) {
-                // Completed Match Style
-                matchDiv.className = "flex flex-col md:flex-row justify-between items-center p-4 bg-white rounded-xl border border-green-100 shadow-sm hover:shadow-md transition match-row";
-                matchDiv.innerHTML = `
-                    <div class="flex items-center gap-4 mb-2 md:mb-0 w-full md:w-auto">
-                        <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">${match.id}</span>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-semibold ${match.winner === 0 ? 'text-green-700' : 'text-gray-500'}">${match.teams[0]}</span>
-                            <span class="text-sm font-semibold ${match.winner === 1 ? 'text-green-700' : 'text-gray-500'}">${match.teams[1]}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                        <div class="flex flex-col items-center">
-                            <span class="text-xl font-mono font-bold ${match.winner === 0 ? 'text-green-600' : 'text-gray-400'}">${scoreA}</span>
-                            <span class="text-xl font-mono font-bold ${match.winner === 1 ? 'text-green-600' : 'text-gray-400'}">${scoreB}</span>
-                        </div>
-                        <button onclick="window.openModal('${match.id}', '${type}')" class="px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
-                            Edit
-                        </button>
-                    </div>
-                `;
-            } else {
-                // Upcoming Match Style
-                const isReady = !match.teams.some(team => team.startsWith('Rank') || team.startsWith('Winner'));
-                matchDiv.className = "flex flex-col md:flex-row justify-between items-center p-4 bg-white rounded-xl border border-gray-100 hover:border-indigo-200 shadow-sm transition match-row";
-                matchDiv.innerHTML = `
-                    <div class="flex items-center gap-4 mb-2 md:mb-0 w-full md:w-auto">
-                        <span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded">${match.id}</span>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-gray-800">${match.teams[0]}</span>
-                            <span class="text-sm font-medium text-gray-500 text-center text-xs">vs</span>
-                            <span class="text-sm font-medium text-gray-800">${match.teams[1]}</span>
-                        </div>
-                    </div>
-                    <button onclick="window.openModal('${match.id}', '${type}')" class="w-full md:w-auto mt-2 md:mt-0 px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition">
-                        Enter Score
-                    </button>
-                `;
-            }
-            return matchDiv;
-        }
-
-        function renderLeagueMatches() {
-            matchesCompletedList.innerHTML = '';
-            matchesUpcomingList.innerHTML = '';
-            
-            let hasCompleted = false;
-            let hasUpcoming = false;
-
-            state.leagueMatches.forEach((match) => {
-                if (match.winner !== null) {
-                    matchesCompletedList.appendChild(createMatchElement(match, 'league'));
-                    hasCompleted = true;
-                } else {
-                    matchesUpcomingList.appendChild(createMatchElement(match, 'league'));
-                    hasUpcoming = true;
-                }
-            });
-
-            if (!hasCompleted) matchesCompletedList.innerHTML = `<div class="text-gray-400 italic p-6 text-center bg-white rounded-xl border border-dashed border-gray-300">No matches completed yet.</div>`;
-            if (!hasUpcoming) matchesUpcomingList.innerHTML = `<div class="text-gray-400 italic p-6 text-center bg-white rounded-xl border border-dashed border-gray-300">All league matches completed!</div>`;
-        }
-
-        function renderPlayoffMatches() {
-            updatePlayoffBracket();
-            Object.keys(state.playoffMatches).forEach(matchId => {
-                const matchData = state.playoffMatches[matchId];
-                const element = document.getElementById(matchId);
-                if (!element) return;
-
-                const isCompleted = matchData.winner !== null;
-                const isReady = !matchData.teams.some(team => team.startsWith('Rank') || team.startsWith('Winner'));
+                errorMessageDiv.classList.remove('hidden');
+                errorText.textContent = error.message;
                 
-                const winnerClass = isCompleted ? 'bg-green-50 border-green-200 ring-2 ring-green-100' : isReady ? 'bg-white border-indigo-200' : 'bg-gray-50 border-gray-200 opacity-70';
-                const winnerTextClass = isCompleted ? 'text-green-700 font-bold' : 'text-gray-900';
-                const buttonColorClass = isCompleted ? 'bg-green-100 text-green-700 hover:bg-green-200' : isReady ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed';
-
-                element.className = `playoff-node p-3 rounded-xl border ${winnerClass} flex flex-col justify-between h-full transition relative`;
-
-                element.innerHTML = `
-                    <div class="absolute top-2 right-2 text-[10px] font-bold text-gray-400">${matchId}</div>
-                    <div class="space-y-2 mt-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs truncate max-w-[70%] ${matchData.winner === 0 ? 'text-green-700 font-bold' : 'text-gray-600'}">${matchData.teams[0]}</span>
-                            <span class="font-mono text-xs font-bold ${matchData.winner === 0 ? 'text-green-700' : 'text-gray-400'}">${matchData.scores[0] !== null ? matchData.scores[0] : '-'}</span>
-                        </div>
-                        <div class="w-full h-px bg-gray-100"></div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs truncate max-w-[70%] ${matchData.winner === 1 ? 'text-green-700 font-bold' : 'text-gray-600'}">${matchData.teams[1]}</span>
-                            <span class="font-mono text-xs font-bold ${matchData.winner === 1 ? 'text-green-700' : 'text-gray-400'}">${matchData.scores[1] !== null ? matchData.scores[1] : '-'}</span>
-                        </div>
-                    </div>
-                    <button 
-                        onclick="${isReady ? `window.openModal('${matchId}', 'playoff')` : ''}" 
-                        class="mt-3 w-full py-1.5 rounded-lg text-xs font-bold transition ${buttonColorClass}"
-                        ${!isReady ? 'disabled' : ''}
-                    >
-                        ${isCompleted ? 'Edit Score' : 'Enter Score'}
-                    </button>
-                `;
-            });
-
-            if (state.playoffMatches["F-M1"].winner !== null) {
-                championName.textContent = state.playoffMatches["F-M1"].teams[state.playoffMatches["F-M1"].winner];
-                championDisplay.classList.remove('hidden');
-            } else {
-                championDisplay.classList.add('hidden');
+                document.getElementById('status-card').classList.remove('border-gray-200');
+                document.getElementById('status-card').classList.add('border-red-400');
             }
         }
 
-        function updateAllViews() {
-            renderStandings();
-            renderLeagueMatches();
-            renderPlayoffMatches();
-        }
-
-        // --- Modal Control ---
-        window.openModal = (matchId, type) => {
-            state.activeMatchId = matchId;
-            state.activeMatchType = type;
-            let matchData = type === 'league' ? state.leagueMatches.find(m => m.id === matchId) : state.playoffMatches[matchId];
-
-            modalTitle.textContent = `Enter Score for ${matchId}`;
-            
-            if (type === 'playoff' && matchData.teams.some(team => team.startsWith('Rank') || team.startsWith('Winner'))) {
-                alert("Match not ready yet.");
-                return; 
-            }
-
-            teamALabel.textContent = matchData.teams[0];
-            teamBLabel.textContent = matchData.teams[1];
-            teamAScoreInput.value = matchData.scores[0] !== null ? matchData.scores[0] : 0;
-            teamBScoreInput.value = matchData.scores[1] !== null ? matchData.scores[1] : 0;
-            
-            modalError.style.display = 'none';
-            scoreModal.classList.remove('hidden');
-            teamAScoreInput.focus();
-        }
-
-        window.closeModal = (event) => {
-            if (event && event.target.id !== 'score-modal' && !event.target.closest('button')) return;
-            scoreModal.classList.add('hidden');
-            state.activeMatchId = null;
-            state.activeMatchType = null;
-            modalError.style.display = 'none';
-        }
-
-        window.submitScore = async () => {
-            const matchId = state.activeMatchId;
-            const type = state.activeMatchType;
-            if (!matchId) return;
-
-            const scoreA = parseInt(teamAScoreInput.value);
-            const scoreB = parseInt(teamBScoreInput.value);
-
-            if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
-                modalError.textContent = "Please enter valid numbers.";
-                modalError.style.display = 'block';
-                return;
-            }
-
-            const winnerIndex = determineWinner(scoreA, scoreB);
-            if (winnerIndex === null) {
-                modalError.textContent = "Invalid score. Must win by 2 or 7-6.";
-                modalError.style.display = 'block';
-                return;
-            }
-            
-            if (type === 'league') {
-                const matchIndex = state.leagueMatches.findIndex(m => m.id === matchId);
-                if (matchIndex !== -1) {
-                    state.leagueMatches[matchIndex].scores = [scoreA, scoreB];
-                    state.leagueMatches[matchIndex].winner = winnerIndex;
-                }
-            } else {
-                const matchData = state.playoffMatches[matchId];
-                matchData.scores = [scoreA, scoreB];
-                propagatePlayoffWinner(matchId, winnerIndex);
-            }
-            
-            await saveState();
-            scoreModal.classList.add('hidden');
-        }
-
-        window.onload = () => {
-             initFirebase();
-             teamAScoreInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') window.submitScore(); });
-             teamBScoreInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') window.submitScore(); });
-        };
+        window.onload = initFirebase;
     </script>
 </body>
 </html>
