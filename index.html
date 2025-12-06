@@ -3,198 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Data Task Board</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9; /* Slate background */
-        }
-        .container {
-            max-width: 700px;
-        }
-        .todo-item {
-            transition: all 0.3s ease;
-        }
-        .completed {
-            text-decoration: line-through;
-            color: #94a3b8; /* Slate 400 */
-        }
-    </style>
+    <title>Equestrian US Open 2025</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="p-4 md:p-8 flex items-start justify-center min-h-screen">
+<body>
 
-    <div id="app-container" class="container w-full bg-white shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
-        <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-2">
-            Local Task Manager
-        </h1>
-        <p class="text-center text-sm text-gray-500">
-            Data is hardcoded and stored locally in this file. Changes are NOT saved on refresh.
-        </p>
-        
-        <!-- Status Indicator (Simplified for local data) -->
-        <div class="text-xs text-center p-2 bg-gray-50 rounded-lg shadow-inner">
-            <span class="font-bold text-gray-700 mr-2">Status: <span id="auth-status-text">Local Array</span></span>
-            <span class="text-gray-600">| Data ID: <code id="user-id" class="break-all font-mono">CODE_VERSION_1.0</code></span>
-        </div>
+    <header>
+        <h1>Equestrian US Open 2025</h1>
+        <p>Tennis Tournament Tracker</p>
+    </header>
 
-        <!-- Add Todo Form -->
-        <form id="add-todo-form" class="flex space-x-3 mt-4">
-            <input type="text" id="todo-input" placeholder="Enter new task or score update" required class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-            <button type="submit" id="add-button" class="bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 shadow-md">
-                Add/Update
-            </button>
-        </form>
+    <nav>
+        <button id="btn-standings" class="active" onclick="showSection('standings')">League Standings</button>
+        <button id="btn-fixtures" onclick="showSection('fixtures')">Fixtures & Results</button>
+    </nav>
 
-        <!-- To-Do List -->
-        <div id="todo-list" class="space-y-3 pt-4">
-            <p id="loading-message" class="text-center text-gray-500 flex items-center justify-center">
-                Loading tasks...
-            </p>
-        </div>
+    <main>
+        <section id="standings" class="view-section">
+            <h2>League Table</h2>
+            <div class="table-container">
+                <table id="standings-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Team</th>
+                            <th>Matches</th>
+                            <th>Won</th>
+                            <th>Lost</th>
+                            <th>Pts</th>
+                            <th>Diff</th>
+                            <th>Score Stats<br><small>(Scored / Gave)</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+            <p class="legend">Win = 2 Points. Tie-breaker determined by Net Set Difference (Diff).</p>
+        </section>
 
-        <!-- Error Message (Kept for local function errors) -->
-        <div id="error-message" class="hidden p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-            <h3 class="font-bold">Application Error:</h3>
-            <p id="error-text" class="mt-1"></p>
-        </div>
-    </div>
+        <section id="fixtures" class="view-section hidden">
+            <h2>Match Results</h2>
+            <div id="results-list" class="match-list">
+                </div>
 
-    <script type="module">
-        // --- LOCAL DATA ARRAY ---
-        // This array holds all your data. You will manually update this section
-        // every time you want to save a permanent change (like a match score).
-        let todos = [
-            {
-                id: crypto.randomUUID(),
-                text: "Review game rules and scoring format.",
-                completed: false,
-                createdAt: Date.now() - 50000
-            },
-            {
-                id: crypto.randomUUID(),
-                text: "Match 1: Team A (15) vs Team B (12)",
-                completed: true,
-                createdAt: Date.now() - 25000
-            },
-            {
-                id: crypto.randomUUID(),
-                text: "Upcoming: Match 2 on Friday at 7 PM.",
-                completed: false,
-                createdAt: Date.now() - 5000
-            }
-        ];
-        // ------------------------
+            <h2>Upcoming Fixtures</h2>
+            <div id="upcoming-list" class="match-list">
+                </div>
+        </section>
+    </main>
 
-        // DOM elements
-        const todoList = document.getElementById('todo-list');
-        const todoInput = document.getElementById('todo-input');
-        const form = document.getElementById('add-todo-form');
-        const loadingMessage = document.getElementById('loading-message');
-
-
-        // --- LOCAL DATA OPERATIONS ---
-
-        function displayError(message) {
-            console.error("App Error:", message);
-            document.getElementById('error-text').textContent = message;
-            document.getElementById('error-message').classList.remove('hidden');
-        }
-
-        function addTodo(text) {
-            try {
-                const newTodo = {
-                    id: crypto.randomUUID(),
-                    text: text.trim(),
-                    completed: false,
-                    createdAt: Date.now() 
-                };
-                
-                // Add new item to the front of the array
-                todos.unshift(newTodo); 
-                
-                todoInput.value = ''; // Clear input on success
-                renderTodos();
-            } catch (error) {
-                displayError("Failed to add todo: " + error.message);
-            }
-        }
-
-        function toggleTodo(id) {
-            const index = todos.findIndex(todo => todo.id === id);
-            if (index !== -1) {
-                todos[index].completed = !todos[index].completed;
-                renderTodos();
-            }
-        }
-
-        function deleteTodo(id) {
-            // Filter the array to keep only items whose id does NOT match the given id
-            todos = todos.filter(todo => todo.id !== id);
-            renderTodos();
-        }
-
-        // --- UI RENDERING ---
-
-        function renderTodos() {
-            todoList.innerHTML = ''; // Clear existing list
-            loadingMessage.classList.add('hidden');
-            
-            // Sort by creation time (most recent first)
-            todos.sort((a, b) => b.createdAt - a.createdAt);
-            
-            if (todos.length === 0) {
-                todoList.innerHTML = '<p class="text-center text-gray-500 p-4 border-2 border-dashed rounded-lg">No tasks yet. Add one above!</p>';
-                return;
-            }
-
-            todos.forEach(todo => {
-                const item = document.createElement('div');
-                item.className = `todo-item flex items-center justify-between p-4 bg-white rounded-lg shadow-md hover:shadow-lg ${todo.completed ? 'completed opacity-70' : ''}`;
-                item.setAttribute('data-id', todo.id);
-
-                const textContainer = document.createElement('div');
-                textContainer.className = 'flex items-center flex-grow cursor-pointer';
-                textContainer.onclick = () => toggleTodo(todo.id);
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = todo.completed;
-                checkbox.className = 'form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4';
-                
-                const textSpan = document.createElement('span');
-                textSpan.className = 'text-gray-800 text-lg break-all mr-4';
-                textSpan.textContent = todo.text;
-
-                textContainer.appendChild(checkbox);
-                textContainer.appendChild(textSpan);
-                
-                // Delete Button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 hover:text-red-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                `;
-                deleteBtn.onclick = () => deleteTodo(todo.id);
-
-                item.appendChild(textContainer);
-                item.appendChild(deleteBtn);
-                todoList.appendChild(item);
-            });
-        }
-        
-        // Event Listeners
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const text = todoInput.value.trim();
-            if (text) {
-                addTodo(text);
-            }
-        });
-
-        // Initialize the app view
-        window.onload = renderTodos;
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
