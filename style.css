@@ -1,41 +1,57 @@
 :root {
-    --primary: #2c3e50;
-    --tennis-green: #6cab44;
-    --light-bg: #f4f4f4;
+    --primary: #2c3e50;       /* Dark Blue/Grey */
+    --tennis-green: #6cab44;  /* Tennis Ball Green */
+    --tennis-dark: #4a7a2f;   /* Darker Green for headers */
+    --light-bg: #f4f4f4;      /* Light Grey Background */
     --white: #ffffff;
-    --loss-red: #e74c3c;
+    --loss-red: #e74c3c;      /* Red for losses in history */
+    --highlight: #f39c12;     /* Orange for upcoming matches */
 }
-
-/* ... Basic Styles from previous response remain here ... */
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--light-bg);
+    color: #333;
 }
 
+/* --- HEADER & NAV --- */
 header {
     background-color: var(--primary);
     color: var(--white);
     text-align: center;
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+header p {
+    margin: 5px 0 0;
+    opacity: 0.8;
 }
 
 nav {
     display: flex;
     justify-content: center;
     background-color: #1a252f;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 nav button {
     background: none;
     border: none;
-    color: #ccc;
+    color: #bbb;
     padding: 15px 30px;
     font-size: 1rem;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    border-bottom: 4px solid transparent;
 }
 
 nav button:hover {
@@ -45,86 +61,115 @@ nav button:hover {
 
 nav button.active {
     color: var(--white);
-    background-color: var(--tennis-green);
+    background-color: var(--tennis-dark);
+    border-bottom: 4px solid var(--tennis-green);
     font-weight: bold;
 }
 
+/* --- MAIN CONTAINER --- */
 main {
     max-width: 900px;
     margin: 20px auto;
     padding: 0 15px;
+    min-height: 80vh;
 }
 
-/* Helper Class */
+/* Utility Class to hide sections/rows */
 .hidden {
-    display: none;
+    display: none !important;
 }
 
-/* Table Styles */
+h2 {
+    color: var(--primary);
+    border-bottom: 2px solid var(--tennis-green);
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+/* --- TABLE STYLES --- */
 .table-container {
     overflow-x: auto;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    background-color: var(--white);
+    min-width: 600px; /* Ensures table doesn't squash too much on mobile */
 }
 
 th, td {
-    padding: 12px;
+    padding: 12px 15px;
     text-align: center;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #eee;
 }
 
 th {
     background-color: var(--tennis-green);
     color: var(--white);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
 }
 
-/* --- INTERACTIVE TEAM NAME STYLES --- */
+/* Row styling */
+tr.main-row:nth-child(4n-3) {
+    background-color: #ffffff;
+}
+tr.main-row:nth-child(4n-1) {
+    background-color: #f9f9f9;
+}
+
+/* --- CLICKABLE TEAM NAME --- */
 .team-name-cell {
     text-align: left;
     font-weight: bold;
     color: var(--primary);
     cursor: pointer;
     position: relative;
-    padding-left: 10px;
+    transition: background 0.2s;
+    user-select: none; /* Prevents text selection while clicking */
 }
 
 .team-name-cell:hover {
-    color: var(--tennis-green);
-    background-color: #f0f0f0;
+    color: var(--tennis-dark);
+    background-color: #eef7eb;
 }
 
 .toggle-icon {
-    font-size: 0.7em;
     float: right;
+    font-size: 0.8rem;
     color: #999;
-    margin-top: 4px;
+    margin-top: 2px;
+    transition: transform 0.3s;
 }
 
-/* --- DROPDOWN DETAILS STYLES --- */
+/* Rotate icon when row is open (handled optionally via JS class, or just visual) */
+.team-name-cell.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* --- DROPDOWN HISTORY STYLES --- */
 .details-row {
-    background-color: #f8f9fa;
-}
-
-.details-row.hidden {
-    display: none;
+    background-color: #f1f3f5;
 }
 
 .details-container {
     text-align: left;
     padding: 10px 20px;
-    border-left: 4px solid var(--primary);
+    border-left: 5px solid var(--primary);
+    margin: 5px 10px;
+    background: #fff;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
 .history-item {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px dashed #ddd;
     font-size: 0.9rem;
 }
 
@@ -132,61 +177,92 @@ th {
     border-bottom: none;
 }
 
-.history-item.WON {
-    color: var(--tennis-green);
+.history-item span:first-child {
+    color: #555;
 }
 
-.history-item.LOST {
+.history-item strong {
+    color: var(--primary);
+}
+
+.history-item.WON span:last-child {
+    color: var(--tennis-green);
+    font-weight: bold;
+}
+
+.history-item.LOST span:last-child {
     color: var(--loss-red);
+    font-weight: bold;
 }
 
 .no-history {
-    color: #777;
+    color: #999;
     font-style: italic;
-    padding: 10px 0;
+    padding: 10px;
 }
 
-/* Match Card Styles */
+/* --- FIXTURES / MATCH CARDS --- */
 .match-card {
     background: var(--white);
-    border-left: 5px solid var(--tennis-green);
+    border-left: 6px solid var(--tennis-green);
     margin-bottom: 15px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    transition: transform 0.2s;
+}
+
+.match-card:hover {
+    transform: translateX(5px);
 }
 
 .match-card.upcoming {
-    border-left-color: #f39c12;
+    border-left-color: var(--highlight);
 }
 
 .match-number {
-    font-size: 0.8rem;
-    color: #777;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #999;
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
 }
 
 .match-teams {
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: 700;
+    color: var(--primary);
 }
 
 .match-score {
     font-size: 1.2rem;
+    font-weight: bold;
     color: var(--primary);
-    background: #eee;
-    padding: 5px 10px;
-    border-radius: 4px;
+    background: #eef7eb;
+    padding: 5px 12px;
+    border-radius: 20px;
 }
 
 .match-summary {
     width: 100%;
-    margin-top: 5px;
+    margin-top: 8px;
     font-size: 0.9rem;
-    color: #555;
+    color: #666;
     font-style: italic;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+}
+
+/* --- MOBILE RESPONSIVE --- */
+@media (max-width: 600px) {
+    nav button { padding: 15px 15px; font-size: 0.9rem; }
+    th, td { padding: 10px 5px; font-size: 0.85rem; }
+    
+    .match-teams { font-size: 1rem; }
+    .match-score { font-size: 1rem; }
 }
