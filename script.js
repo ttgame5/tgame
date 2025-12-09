@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchData();
 });
 
-// List of all teams to ensure they appear in table even if they haven't played
 const teamNames = [
     "Ilavatta Pasanga", "Saravedi", "Legends", "Silent Kings", 
     "Alapparai", "Baasha", "Prince Warriors"
@@ -17,12 +16,11 @@ async function fetchData() {
         calculateAndRender();
     } catch (error) {
         console.error("Error loading data:", error);
-        document.querySelector('main').innerHTML = "<p>Error loading match data. Please ensure matches.json is present.</p>";
     }
 }
 
 function calculateAndRender() {
-    // 1. Initialize Stats object
+    // 1. Initialize Stats
     let stats = {};
     teamNames.forEach(team => {
         stats[team] = {
@@ -32,7 +30,8 @@ function calculateAndRender() {
             lost: 0,
             points: 0,
             setsFor: 0,
-            setsAgainst: 0
+            setsAgainst: 0,
+            history: [] // Array to store match details for the dropdown
         };
     });
 
@@ -40,42 +39,48 @@ function calculateAndRender() {
     const resultsContainer = document.getElementById('results-list');
     const upcomingContainer = document.getElementById('upcoming-list');
 
-    matchesData.forEach(match => {
-        if (match.played) {
-            // Update Stats
-            updateTeamStats(stats, match.t1, match.s1, match.s2);
-            updateTeamStats(stats, match.t2, match.s2, match.s1);
+    // Clear previous content
+    resultsContainer.innerHTML = '';
+    upcomingContainer.innerHTML = '';
 
-            // Render Result Card
+    matchesData.forEach(match => {
+        // Handle Standings Data (history)
+        if (match.played) {
+            updateTeamStats(stats, match.t1, match.s1, match.s2, match.t2, match.id);
+            updateTeamStats(stats, match.t2, match.s2, match.s1, match.t1, match.id);
             resultsContainer.innerHTML += createMatchCard(match);
         } else {
-            // Render Upcoming Card
             upcomingContainer.innerHTML += createMatchCard(match);
         }
     });
 
-    // 3. Convert Stats Object to Array and Sort
+    // 3. Sort Table
     let tableData = Object.values(stats);
-
     tableData.sort((a, b) => {
-        // Priority 1: Points (Higher is better)
-        if (b.points !== a.points) return b.points - a.points;
-        // Priority 2: Set Difference (Calculated: For - Against)
+        if (b.won !== a.won) return b.won - a.won; // Priority 1: Matches Won
         let diffA = a.setsFor - a.setsAgainst;
         let diffB = b.setsFor - b.setsAgainst;
-        return diffB - diffA;
+        return diffB - diffA; // Priority 2: Point Difference
     });
 
     // 4. Render Table
     const tableBody = document.querySelector('#standings-table tbody');
+    tableBody.innerHTML = '';
+
     tableData.forEach((team, index) => {
         let diff = team.setsFor - team.setsAgainst;
         let diffDisplay = diff > 0 ? `+${diff}` : diff;
         
-        let row = `
-            <tr>
+        // Sanitize team name for ID (remove spaces)
+        let teamIdSafe = team.name.replace(/\s+/g, '-').toLowerCase();
+
+        // Main Row
+        let mainRow = `
+            <tr class="main-row">
                 <td>${index + 1}</td>
-                <td>${team.name}</td>
+                <td class="team-name-cell" onclick="toggleDetails('${teamIdSafe}')">
+                    ${team.name} <span class="toggle-icon">▼</span>
+                </td>
                 <td>${team.matches}</td>
                 <td>${team.won}</td>
                 <td>${team.lost}</td>
@@ -84,22 +89,66 @@ function calculateAndRender() {
                 <td>${team.setsFor} / ${team.setsAgainst}</td>
             </tr>
         `;
-        tableBody.innerHTML += row;
+
+        // Details Row (Hidden by default)
+        let historyHtml = team.history.map(h => 
+            `<div class="history-item ${h.result}">
+                <span>Match ${h.matchId} vs <strong>${h.opponent}</strong></span>
+                <span>${h.scoreOwn}-${h.scoreOpp} (${h.result})</span>
+            </div>`
+        ).join('');
+
+        if(historyHtml === '') historyHtml = '<div class="no-history">No matches played yet.</div>';
+
+        let detailsRow = `
+            <tr id="details-${teamIdSafe}" class="details-row hidden">
+                <td colspan="8">
+                    <div class="details-container">
+                        ${historyHtml}
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        tableBody.innerHTML += mainRow + detailsRow;
     });
 }
 
-function updateTeamStats(stats, teamName, myScore, oppScore) {
-    if(!stats[teamName]) return; // Safety check
+function updateTeamStats(stats, teamName, myScore, oppScore, opponentName, matchId) {
+    if(!stats[teamName]) return;
 
     stats[teamName].matches += 1;
     stats[teamName].setsFor += myScore;
     stats[teamName].setsAgainst += oppScore;
 
+    let result = '';
     if (myScore > oppScore) {
         stats[teamName].won += 1;
         stats[teamName].points += 2;
+        result = 'WON';
     } else {
         stats[teamName].lost += 1;
+        result = 'LOST';
+    }
+
+    // Add to history for the toggle view
+    stats[teamName].history.push({
+        matchId: matchId,
+        opponent: opponentName,
+        scoreOwn: myScore,
+        scoreOpp: oppScore,
+        result: result
+    });
+}
+
+// ... createMatchCard and showSection functions remain the same as previous code ...
+
+function toggleDetails(teamId) {
+    const row = document.getElementById(`details-${teamId}`);
+    if (row.classList.contains('hidden')) {
+        row.classList.remove('hidden');
+    } else {
+        row.classList.add('hidden');
     }
 }
 
@@ -125,14 +174,9 @@ function createMatchCard(match) {
     }
 }
 
-// Tab Switching Logic
 function showSection(sectionId) {
-    // Hide all sections
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
-    // Remove active class from buttons
     document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-
-    // Show selected
     document.getElementById(sectionId).classList.remove('hidden');
     document.getElementById(`btn-${sectionId}`).classList.add('active');
 }
