@@ -3,7 +3,10 @@
     --tennis-green: #6cab44;
     --light-bg: #f4f4f4;
     --white: #ffffff;
+    --loss-red: #e74c3c;
 }
+
+/* ... Basic Styles from previous response remain here ... */
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,6 +55,7 @@ main {
     padding: 0 15px;
 }
 
+/* Helper Class */
 .hidden {
     display: none;
 }
@@ -79,14 +83,67 @@ th {
     color: var(--white);
 }
 
-td:nth-child(2) { /* Team Name alignment */
+/* --- INTERACTIVE TEAM NAME STYLES --- */
+.team-name-cell {
     text-align: left;
     font-weight: bold;
     color: var(--primary);
+    cursor: pointer;
+    position: relative;
+    padding-left: 10px;
 }
 
-tr:nth-child(even) {
-    background-color: #f9f9f9;
+.team-name-cell:hover {
+    color: var(--tennis-green);
+    background-color: #f0f0f0;
+}
+
+.toggle-icon {
+    font-size: 0.7em;
+    float: right;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* --- DROPDOWN DETAILS STYLES --- */
+.details-row {
+    background-color: #f8f9fa;
+}
+
+.details-row.hidden {
+    display: none;
+}
+
+.details-container {
+    text-align: left;
+    padding: 10px 20px;
+    border-left: 4px solid var(--primary);
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item.WON {
+    color: var(--tennis-green);
+}
+
+.history-item.LOST {
+    color: var(--loss-red);
+}
+
+.no-history {
+    color: #777;
+    font-style: italic;
+    padding: 10px 0;
 }
 
 /* Match Card Styles */
@@ -132,10 +189,4 @@ tr:nth-child(even) {
     font-size: 0.9rem;
     color: #555;
     font-style: italic;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-    nav button { padding: 15px 15px; font-size: 0.9rem; }
-    th, td { padding: 8px 4px; font-size: 0.9rem; }
 }
