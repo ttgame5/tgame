@@ -18,6 +18,6 @@
   { "id": 17, "t1": "Silent Kings", "t2": "Ilavatta Pasanga", "s1": 1, "s2": 6, "played": true },
   { "id": 18, "t1": "Legends", "t2": "Prince Warriors", "s1": 6, "s2": 7, "played": true },
   { "id": 19, "t1": "Silent Kings", "t2": "Prince Warriors", "s1": 2, "s2": 6, "played": true },
-  { "id": 20, "t1": "Baasha", "t2": "Silent Kings", "s1": 0, "s2": 0, "played": false },
-  { "id": 21, "t1": "Alapparai", "t2": "Saravedi", "s1": 0, "s2": 0, "played": false } 
+  { "id": 20, "t1": "Alapparai", "t2": "Saravedi", "s1": 1, "s2": 6, "played": true },
+  { "id": 21, "t1": "Baasha", "t2": "Silent Kings", "s1": 0, "s2": 0, "played": false }
 ]
